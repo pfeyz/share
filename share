@@ -69,7 +69,7 @@ if [[ -z "$1" ]]; then
     echo "ERROR - no file provided"
     usage
     exit
-elif [[ $(($RANDHASH+$FILEHASH+$NAMEHASH)) -gt 1 ]]; then
+elif [[ $((RANDHASH + FILEHASH + NAMEHASH)) -gt 1 ]]; then
     echo "-r -f and -n flags are mutually exclusive"
     usage
     exit
@@ -78,12 +78,12 @@ fi
 parsetime()
 {
     dtime=0
-    days=$(echo $1 | grep -Po "(^|[^0-9])\d+d")
+    days=$(echo $1 | grep -Po "(^|[^0-9])\d+d" | tr -d "d")
     hours=$(echo $1 | grep -Po "(^|[^0-9])\d+h" | tr -d "dh")
     mins=$(echo $1 | grep -Po "(^|[^0-9])\d+m" | tr -d "hm")
-    if [[ ! -z "$days" ]]; then dtime=$(($days*1440+$dtime)); fi
-    if [[ ! -z "$hours" ]]; then dtime=$(($hours*60+$dtime)); fi
-    if [[ ! -z "$mins" ]]; then dtime=$(($mins+$dtime)); fi
+    if [[ ! -z "$days" ]]; then dtime=$((days * 1440 + dtime)); fi
+    if [[ ! -z "$hours" ]]; then dtime=$((hours * 60 + dtime)); fi
+    if [[ ! -z "$mins" ]]; then dtime=$((mins + dtime)); fi
     echo $dtime
 }
 
