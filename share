@@ -1,0 +1,144 @@
+#!/usr/bin/env bash
+
+usage()
+{
+    cat << EOF
+share [ -f | -r | -h ] [ -d TIME ] [ -l LEN ] FILENAME
+  Easily scp a randomly titled, self-destructing version of your file.
+
+  FILENAME : file to upload via ssh
+  -f : upload file named by hashing file contents
+  -n : upload file named by hashing file name
+  -r : upload file with random filename
+  -d TIME : delete the file after TIME
+  -l LEN : set length of random/hashed filename (default: 16)
+
+  TIME is in the format 4d3h2m, in that order, any two parts can be omitted.
+  With no suffix the unit of minutes is assumed.
+
+EOF
+}
+
+USER=
+DOMAIN=
+DIR=
+
+if test -z "$USER" -o -z "$DOMAIN"; then
+    echo "You must define the USER and DOMAIN variables (in the script)"
+    exit
+elif test -z "$DIR"; then
+    echo "You must define the DIR variables (in the script)"
+    exit
+fi
+
+# TODO: perhaps these two functions should fail without initial user
+# intervention? This is where I picture the file-clobbering happening.
+
+# echoes the upload-target filename
+uploadto()
+{
+    filename=$1
+    echo "~/$DOMAIN/$DIR/$filename"
+}
+
+# echoes the public link to the file
+makelink()
+{
+    filename=$1
+    echo "$DOMAIN/$DIR/$filename"
+}
+
+HASHLEN=16
+RANDHASH=0
+FILEHASH=0
+NAMEHASH=0
+
+while getopts "rnfl:d:" option; do
+    case $option in
+        r) RANDHASH=1 ;;
+        f) FILEHASH=1 ;;
+        n) NAMEHASH=1 ;;
+        l) HASHLEN=$OPTARG ;;
+        d) DELETETIME=$OPTARG ;;
+    esac
+done
+
+shift $(($OPTIND - 1))
+
+if [[ -z "$1" ]]; then
+    echo "ERROR - no file provided"
+    usage
+    exit
+elif [[ $(($RANDHASH+$FILEHASH+$NAMEHASH)) -gt 1 ]]; then
+    echo "-r -f and -n flags are mutually exclusive"
+    usage
+    exit
+fi
+
+parsetime()
+{
+    dtime=0
+    days=$(echo $1 | grep -Po "(^|[^0-9])\d+d")
+    hours=$(echo $1 | grep -Po "(^|[^0-9])\d+h" | tr -d "dh")
+    mins=$(echo $1 | grep -Po "(^|[^0-9])\d+m" | tr -d "hm")
+    if [[ ! -z "$days" ]]; then dtime=$(($days*1440+$dtime)); fi
+    if [[ ! -z "$hours" ]]; then dtime=$(($hours*60+$dtime)); fi
+    if [[ ! -z "$mins" ]]; then dtime=$(($mins+$dtime)); fi
+    echo $dtime
+}
+
+if [[ ! -z "$DELETETIME" ]]; then
+    if [[ ! -z $(echo "$DELETETIME" | grep -P "^(\d+d)?(\d+h)?(\d+m)?$") ]];
+    then
+        offset=$(parsetime $DELETETIME)
+    elif [[ ! -z $(echo "$DELETETIME" | grep -P "^\d+$") ]]; then
+        offset=$(($DELETETIME))
+    else
+        echo "invalid time string \"$DELETETIME\""
+    fi
+fi
+
+source="$1"
+
+if [[ ! -z "$(echo "$source" | grep "\.")" ]]; then  # has file extension
+    # taken from http://stackoverflow.com/a/965072
+    filename=$(basename "$source")
+    extension=".${filename##*.}"
+    filename=${filename%.*}
+else
+    filename="$source"
+    extension=""
+fi
+
+if [[ $NAMEHASH -eq 1 ]]; then
+    hash=$(echo "$source" | sha512sum | cut -c1-$HASHLEN 2> /dev/null)
+    file="$hash$extension"
+elif [[ $RANDHASH -eq 1  ]]; then
+    # TODO: Is replacing - with / sufficient?
+    hash=$(dd if=/dev/urandom count=1 2> /dev/null | base64 | tr -d "\n" | \
+        cut -c1-$HASHLEN 2> /dev/null | tr -t "/" "-")
+    file="$hash$extension"
+elif [[ "$FILEHASH" -eq 1 ]]; then
+    hash=$(sha512sum "$source" | cut -c1-$HASHLEN 2> /dev/null)
+    file="$hash$extension"
+fi
+
+scp "$source" "$USER@$DOMAIN:$(uploadto $file)" &&
+link=$(makelink ${file:-"$(basename "$source")"}) &&  # TODO: fix this [1]
+echo -n "$link" &&
+which xclip > /dev/null &&
+echo "$link" | xclip && echo -e "\t (link copied to clipboard)"
+
+if [[ ! -z "$offset" ]]; then
+    ssh $USER@$DOMAIN 2> /dev/null <<EOF
+file=$(uploadto ${file:-"$(basename "$source")"})  # TODO: fix this [1]
+echo rm "\$file" | at now + "$offset" minutes
+EOF
+# TODO: make this message depend on the exit status of ssh
+echo "Deletion scheduled. File will be deleted in $offset minutes."
+fi
+
+# [1] scp was breaking when the filename contained whitespace. spaces only come
+# up when we're using the literal filename, so simply omitting the filename part
+# works because scp keeps the original name. however, this makes the deletion
+# part of the script hackier.
