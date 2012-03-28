@@ -23,10 +23,10 @@ USER=
 DOMAIN=
 DIR=
 
-if test -z "$USER" -o -z "$DOMAIN"; then
+if [ -z "$USER" -o -z "$DOMAIN" ]; then
     echo "You must define the USER and DOMAIN variables (in the script)"
     exit
-elif test -z "$DIR"; then
+elif [ -z "$DIR" ]; then
     echo "You must define the DIR variables (in the script)"
     exit
 fi
@@ -65,11 +65,11 @@ done
 
 shift $(($OPTIND - 1))
 
-if [[ -z "$1" ]]; then
+if [ -z "$1" ]; then
     echo "ERROR - no file provided"
     usage
     exit
-elif [[ $((RANDHASH + FILEHASH + NAMEHASH)) -gt 1 ]]; then
+elif [ $((RANDHASH + FILEHASH + NAMEHASH)) -gt 1 ]; then
     echo "-r -f and -n flags are mutually exclusive"
     usage
     exit
@@ -81,17 +81,17 @@ parsetime()
     days=$(echo $1 | grep -Po "(^|[^0-9])\d+d" | tr -d "d")
     hours=$(echo $1 | grep -Po "(^|[^0-9])\d+h" | tr -d "dh")
     mins=$(echo $1 | grep -Po "(^|[^0-9])\d+m" | tr -d "hm")
-    if [[ ! -z "$days" ]]; then dtime=$((days * 1440 + dtime)); fi
-    if [[ ! -z "$hours" ]]; then dtime=$((hours * 60 + dtime)); fi
-    if [[ ! -z "$mins" ]]; then dtime=$((mins + dtime)); fi
+    if [ ! -z "$days" ]; then dtime=$((days * 1440 + dtime)); fi
+    if [ ! -z "$hours" ]; then dtime=$((hours * 60 + dtime)); fi
+    if [ ! -z "$mins" ]; then dtime=$((mins + dtime)); fi
     echo $dtime
 }
 
-if [[ ! -z "$DELETETIME" ]]; then
-    if [[ ! -z $(echo "$DELETETIME" | grep -P "^(\d+d)?(\d+h)?(\d+m)?$") ]];
+if [ ! -z "$DELETETIME" ]; then
+    if [ ! -z $(echo "$DELETETIME" | grep -P "^(\d+d)?(\d+h)?(\d+m)?$") ];
     then
         offset=$(parsetime $DELETETIME)
-    elif [[ ! -z $(echo "$DELETETIME" | grep -P "^\d+$") ]]; then
+    elif [ ! -z $(echo "$DELETETIME" | grep -P "^\d+$") ]; then
         offset=$(($DELETETIME))
     else
         echo "invalid time string \"$DELETETIME\""
@@ -101,7 +101,7 @@ fi
 
 source="$1"
 
-if [[ ! -z "$(echo "$source" | grep "\.")" ]]; then  # has file extension
+if [ ! -z "$(echo "$source" | grep "\.")" ]; then  # has file extension
     # taken from http://stackoverflow.com/a/965072
     filename=$(basename "$source")
     extension=".${filename##*.}"
@@ -111,15 +111,15 @@ else
     extension=""
 fi
 
-if [[ $NAMEHASH -eq 1 ]]; then
+if [ $NAMEHASH -eq 1 ]; then
     hash=$(echo "$source" | sha512sum | cut -c1-$HASHLEN 2> /dev/null)
     file="$hash$extension"
-elif [[ $RANDHASH -eq 1  ]]; then
+elif [ $RANDHASH -eq 1  ]; then
     # TODO: Is replacing - with / sufficient?
     hash=$(dd if=/dev/urandom count=1 2> /dev/null | base64 | tr -d "\n" | \
         cut -c1-$HASHLEN 2> /dev/null | tr -t "/" "-")
     file="$hash$extension"
-elif [[ "$FILEHASH" -eq 1 ]]; then
+elif [ "$FILEHASH" -eq 1 ]; then
     hash=$(sha512sum "$source" | cut -c1-$HASHLEN 2> /dev/null)
     file="$hash$extension"
 fi
@@ -130,7 +130,7 @@ echo -n "$link" &&
 which xclip > /dev/null &&
 echo "$link" | xclip && echo -e "\t (link copied to clipboard)"
 
-if [[ ! -z "$offset" ]]; then
+if [ ! -z "$offset" ]; then
     ssh $USER@$DOMAIN 2> /dev/null <<EOF
 file=$(uploadto ${file:-"$(basename "$source")"})  # TODO: fix this [1]
 echo rm "\$file" | at now + "$offset" minutes
