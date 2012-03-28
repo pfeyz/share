@@ -23,11 +23,8 @@ USER=
 DOMAIN=
 DIR=
 
-if [ -z "$USER" -o -z "$DOMAIN" ]; then
-    echo "You must define the USER and DOMAIN variables (in the script)"
-    exit
-elif [ -z "$DIR" ]; then
-    echo "You must define the DIR variables (in the script)"
+if [[ -z "$USER" || -z "$DOMAIN" || -z "$DIR" ]]; then
+    echo "You must define the USER, DOMAIN and DIR variables (in the script)"
     exit
 fi
 
@@ -92,7 +89,7 @@ if [ ! -z "$DELETETIME" ]; then
     then
         offset=$(parsetime $DELETETIME)
     elif [ ! -z $(echo "$DELETETIME" | grep -P "^\d+$") ]; then
-        offset=$(($DELETETIME))
+        offset=$DELETETIME
     else
         echo "invalid time string \"$DELETETIME\""
         exit
@@ -101,7 +98,7 @@ fi
 
 source="$1"
 
-if [ ! -z "$(echo "$source" | grep "\.")" ]; then  # has file extension
+if [[ $source =~ \. ]]; then  # has file extension
     # taken from http://stackoverflow.com/a/965072
     filename=$(basename "$source")
     extension=".${filename##*.}"
@@ -130,6 +127,7 @@ echo -n "$link" &&
 which xclip > /dev/null &&
 echo "$link" | xclip && echo -e "\t (link copied to clipboard)"
 
+# TODO: this shouldn't run if the above (besides xclip) fail.
 if [ ! -z "$offset" ]; then
     ssh $USER@$DOMAIN 2> /dev/null <<EOF
 file=$(uploadto ${file:-"$(basename "$source")"})  # TODO: fix this [1]
