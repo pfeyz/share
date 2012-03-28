@@ -8,8 +8,11 @@ quickly share into the same publicly viewable web directory, so I wrote this
 bash script.
 
 This has basically not been tested at all at this point (it works on my
-machines) so **use it at your own risk**. I feel like this kind of thing has real
-clobber potential.
+machines) so **use it at your own risk**. I feel like this kind of thing has
+real clobber potential.
+
+Also, it only really makes sense if the directory you're uploading to has
+directory listing disabled.
 
 
 Examples
@@ -41,7 +44,7 @@ The script assumes the public web directories on your server are named after the
 domain and located in your home directory. Change the uploadto() function if
 this is not the case.
 
-Scheduled deletion requires the `at` program to be installed and configured on
+Scheduled deletion requires the ``at`` program to be installed and configured on
 the server.
 
 
