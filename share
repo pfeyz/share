@@ -121,23 +121,28 @@ elif [ "$FILEHASH" -eq 1 ]; then
     file="$hash$extension"
 fi
 
+remotebase=${file:-"$(basename "$source")"} # TODO: fix this [1]
+remotefile=$(uploadto $remotebase)
+link=$(makelink $remotebase)
+
 scp "$source" "$USER@$DOMAIN:$(uploadto $file)" &&
-link=$(makelink ${file:-"$(basename "$source")"}) &&  # TODO: fix this [1]
 echo -n "$link" &&
 which xclip > /dev/null &&
 echo "$link" | xclip && echo -e "\t (link copied to clipboard)"
 
+remotecmd="at now + $offset minutes  2> /dev/null <<< \"rm $remotefile\""
+
 # TODO: this shouldn't run if the above (besides xclip) fail.
 if [ ! -z "$offset" ]; then
-    ssh $USER@$DOMAIN 2> /dev/null <<EOF
-file=$(uploadto ${file:-"$(basename "$source")"})  # TODO: fix this [1]
-echo rm "\$file" | at now + "$offset" minutes
-EOF
-# TODO: make this message depend on the exit status of ssh
-echo "Deletion scheduled. File will be deleted in $offset minutes."
+    if ssh $USER@$DOMAIN 2> /dev/null <<< $remotecmd; then
+        echo "Deletion scheduled. File will be deleted in $offset minutes."
+    else
+        echo "Failed to schedule deletion"
+    fi
 fi
 
 # [1] scp was breaking when the filename contained whitespace. spaces only come
 # up when we're using the literal filename, so simply omitting the filename part
 # works because scp keeps the original name. however, this makes the deletion
 # part of the script hackier.
+
