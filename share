@@ -7,10 +7,12 @@ share [ -f | -r | -h ] [ -d TIME ] [ -l LEN ] FILENAME
   Easily scp a randomly titled, self-destructing version of your file.
 
   FILENAME : file to upload via ssh
+  -d TIME : delete the file after TIME
+  -r : upload file with random filename
   -f : upload file named by hashing file contents
   -n : upload file named by hashing file name
-  -r : upload file with random filename
-  -d TIME : delete the file after TIME
+  -s : strip the extension from the filename, if any exists (default behavior is
+   to preserve file extension, including when random or hash renaming is used)
   -l LEN : set length of random/hashed filename (default: 16)
 
   TIME is in the format 4d3h2m, in that order, any two parts can be omitted.
@@ -50,11 +52,12 @@ RANDHASH=0
 FILEHASH=0
 NAMEHASH=0
 
-while getopts "rnfl:d:" option; do
+while getopts "srnfl:d:" option; do
     case $option in
         r) RANDHASH=1 ;;
         f) FILEHASH=1 ;;
         n) NAMEHASH=1 ;;
+        s) STRIPEXT=1 ;;
         l) HASHLEN=$OPTARG ;;
         d) DELETETIME=$OPTARG ;;
     esac
@@ -103,6 +106,9 @@ if [[ $source =~ \. ]]; then  # has file extension
     filename=$(basename "$source")
     extension=".${filename##*.}"
     filename=${filename%.*}
+    if [ ! -z "$STRIPEXT" ]; then
+        extension=""
+    fi
 else
     filename="$source"
     extension=""
