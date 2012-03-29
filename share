@@ -37,7 +37,9 @@ fi
 uploadto()
 {
     filename=$1
-    echo "~/$DOMAIN/$DIR/$filename"
+    echo "~/'$DOMAIN/$DIR/$filename'"
+    # single quotes escape spaces in filenames. if ~ is in the quotes it will
+    # not be expanded.
 }
 
 # echoes the public link to the file
@@ -116,22 +118,23 @@ fi
 
 if [ $NAMEHASH -eq 1 ]; then
     hash=$(sha512sum <<< "$source" | cut -c1-$HASHLEN 2> /dev/null)
-    file="$hash$extension"
+    remotebase="$hash$extension"
 elif [ $RANDHASH -eq 1  ]; then
-    # TODO: Is replacing - with / sufficient?
+    # TODO: Is replacing / with - sufficient?
     hash=$(dd if=/dev/urandom count=1 2> /dev/null | base64 | tr -d "\n" | \
         cut -c1-$HASHLEN 2> /dev/null | tr -t "/" "-")
-    file="$hash$extension"
+    remotebase="$hash$extension"
 elif [ "$FILEHASH" -eq 1 ]; then
     hash=$(sha512sum "$source" | cut -c1-$HASHLEN 2> /dev/null)
-    file="$hash$extension"
+    remotebase="$hash$extension"
+else
+    remotebase="$filename$extension"
 fi
 
-remotebase=${file:-"$(basename "$source")"} # TODO: fix this [1]
-remotefile=$(uploadto $remotebase)
-link=$(makelink $remotebase)
+remotefile=$(uploadto "$remotebase")
+link=$(makelink "$remotebase")
 
-if scp "$source" "$USER@$DOMAIN:$(uploadto $file)"; then
+if scp "$source" "$USER@$DOMAIN:$remotefile"; then
     echo -n "$link"
     if which xclip > /dev/null; then
         xclip <<< "$link"
@@ -149,8 +152,3 @@ if scp "$source" "$USER@$DOMAIN:$(uploadto $file)"; then
 else
     echo "Failed uploading to $remotefile"
 fi
-# [1] scp was breaking when the filename contained whitespace. spaces only come
-# up when we're using the literal filename, so simply omitting the filename part
-# works because scp keeps the original name. however, this makes the deletion
-# part of the script hackier.
-
