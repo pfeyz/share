@@ -125,22 +125,24 @@ remotebase=${file:-"$(basename "$source")"} # TODO: fix this [1]
 remotefile=$(uploadto $remotebase)
 link=$(makelink $remotebase)
 
-scp "$source" "$USER@$DOMAIN:$(uploadto $file)" &&
-echo -n "$link" &&
-which xclip > /dev/null &&
-echo "$link" | xclip && echo -e "\t (link copied to clipboard)"
-
-remotecmd="at now + $offset minutes  2> /dev/null <<< \"rm $remotefile\""
-
-# TODO: this shouldn't run if the above (besides xclip) fail.
-if [ ! -z "$offset" ]; then
-    if ssh $USER@$DOMAIN 2> /dev/null <<< $remotecmd; then
-        echo "Deletion scheduled. File will be deleted in $offset minutes."
-    else
-        echo "Failed to schedule deletion"
+if scp "$source" "$USER@$DOMAIN:$(uploadto $file)"; then
+    echo -n "$link"
+    if which xclip > /dev/null; then
+        xclip <<< "$link"
+        echo -e "\t (link copied to clipboard)"
     fi
-fi
 
+    remotecmd="at now + $offset minutes  2> /dev/null <<< \"rm $remotefile\""
+    if [ ! -z "$offset" ]; then
+        if ssh $USER@$DOMAIN 2> /dev/null <<< $remotecmd; then
+            echo "Deletion scheduled. File will be deleted in $offset minutes."
+        else
+            echo "Failed to schedule deletion"
+        fi
+    fi
+else
+    echo "Failed uploading to $remotefile"
+fi
 # [1] scp was breaking when the filename contained whitespace. spaces only come
 # up when we're using the literal filename, so simply omitting the filename part
 # works because scp keeps the original name. however, this makes the deletion
