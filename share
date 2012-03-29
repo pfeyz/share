@@ -75,9 +75,9 @@ fi
 parsetime()
 {
     dtime=0
-    days=$(echo $1 | grep -Po "(^|[^0-9])\d+d" | tr -d "d")
-    hours=$(echo $1 | grep -Po "(^|[^0-9])\d+h" | tr -d "dh")
-    mins=$(echo $1 | grep -Po "(^|[^0-9])\d+m" | tr -d "hm")
+    days=$(grep -Po "(^|[^0-9])\d+d" <<< $1 | tr -d "d")
+    hours=$(grep -Po "(^|[^0-9])\d+h" <<< $1 | tr -d "dh")
+    mins=$(grep -Po "(^|[^0-9])\d+m" <<< $1 | tr -d "hm")
     if [ ! -z "$days" ]; then dtime=$((days * 1440 + dtime)); fi
     if [ ! -z "$hours" ]; then dtime=$((hours * 60 + dtime)); fi
     if [ ! -z "$mins" ]; then dtime=$((mins + dtime)); fi
@@ -85,10 +85,10 @@ parsetime()
 }
 
 if [ ! -z "$DELETETIME" ]; then
-    if [ ! -z $(echo "$DELETETIME" | grep -P "^(\d+d)?(\d+h)?(\d+m)?$") ];
+    if [ ! -z $(grep -P "^(\d+d)?(\d+h)?(\d+m)?$" <<< "$DELETETIME") ];
     then
         offset=$(parsetime $DELETETIME)
-    elif [ ! -z $(echo "$DELETETIME" | grep -P "^\d+$") ]; then
+    elif [ ! -z $(grep -P "^\d+$" <<< "$DELETETIME") ]; then
         offset=$DELETETIME
     else
         echo "invalid time string \"$DELETETIME\""
@@ -109,7 +109,7 @@ else
 fi
 
 if [ $NAMEHASH -eq 1 ]; then
-    hash=$(echo "$source" | sha512sum | cut -c1-$HASHLEN 2> /dev/null)
+    hash=$(sha512sum <<< "$source" | cut -c1-$HASHLEN 2> /dev/null)
     file="$hash$extension"
 elif [ $RANDHASH -eq 1  ]; then
     # TODO: Is replacing - with / sufficient?
