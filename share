@@ -121,7 +121,7 @@ if [ $NAMEHASH -eq 1 ]; then
     remotebase="$hash$extension"
 elif [ $RANDHASH -eq 1  ]; then
     # TODO: Is replacing / with - sufficient?
-    hash=$(dd if=/dev/urandom count=1 2> /dev/null | base64 | tr -d "\n" | \
+    hash=$(dd if=/dev/urandom count=1 2> /dev/null | base64 -w0 | \
         cut -c1-$HASHLEN 2> /dev/null | tr -t "/" "-")
     remotebase="$hash$extension"
 elif [ "$FILEHASH" -eq 1 ]; then
