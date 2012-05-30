@@ -136,9 +136,11 @@ link=$(makelink "$remotebase")
 
 if scp "$source" "$USER@$DOMAIN:$remotefile"; then
     echo -n "$link"
-    if which xclip > /dev/null; then
+    if which xclip &> /dev/null; then
         echo -n "$link" | xclip
         echo -e "\t (link copied to clipboard)"
+    else
+	echo
     fi
 
     remotecmd="at now + $offset minutes  2> /dev/null <<< \"rm $remotefile\""
