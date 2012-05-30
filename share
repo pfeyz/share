@@ -137,7 +137,7 @@ link=$(makelink "$remotebase")
 if scp "$source" "$USER@$DOMAIN:$remotefile"; then
     echo -n "$link"
     if which xclip > /dev/null; then
-        xclip <<< "$link"
+        echo -n "$link" | xclip
         echo -e "\t (link copied to clipboard)"
     fi
 
