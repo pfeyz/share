@@ -102,18 +102,15 @@ if [ ! -z "$DELETETIME" ]; then
 fi
 
 source="$1"
-
-if [[ $source =~ \. ]]; then  # has file extension
+filename=$(basename $source)
+extension=""
+if [[ $filename =~ \. ]]; then  # has file extension
     # taken from http://stackoverflow.com/a/965072
-    filename=$(basename "$source")
     extension=".${filename##*.}"
     filename=${filename%.*}
     if [ ! -z "$STRIPEXT" ]; then
         extension=""
     fi
-else
-    filename="$source"
-    extension=""
 fi
 
 if [ $NAMEHASH -eq 1 ]; then
@@ -140,7 +137,7 @@ if scp "$source" "$USER@$DOMAIN:$remotefile"; then
         echo -n "$link" | xclip
         echo -e "\t (link copied to clipboard)"
     else
-	echo
+        echo
     fi
 
     remotecmd="at now + $offset minutes  2> /dev/null <<< \"rm $remotefile\""
