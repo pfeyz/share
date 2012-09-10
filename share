@@ -102,7 +102,7 @@ if [ ! -z "$DELETETIME" ]; then
 fi
 
 source="$1"
-filename=$(basename $source)
+filename=$(basename "$source")
 extension=""
 if [[ $filename =~ \. ]]; then  # has file extension
     # taken from http://stackoverflow.com/a/965072
